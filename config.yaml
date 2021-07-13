@@ -1,0 +1,52 @@
+baseURL: https://rickdaalhuizen.com
+languageCode: en-us
+title: Rick Daalhuizen
+subtitle: I'm a Software Engineer, Content Creator and I Make Stuff.
+theme: hugo-winston-theme
+googleAnalytics: ""
+googleVerification: ""
+enableRobotsTXT: true
+pygmentsUseClasses: true
+pygmentsCodeFences: true
+pygmentsCodefencesGuessSyntax: true
+publishDir: docs
+
+params:
+  google_analytics_id: ""
+  twitter_handle: "@zerostaticio"
+  showAuthorOnHomepage: true
+  showAuthorOnPosts: false
+  showPostsOnHomepage: false
+  addFrame: false
+  addDot: true
+
+markup:
+  highlight:
+    anchorLineNos: false
+    codeFences: true
+    guessSyntax: false
+    lineNoStart: 1
+    lineNos: false
+    lineNumbersInTable: true
+    noClasses: true
+    hl_Lines: ""
+    lineAnchors: ""
+    style: swap-off
+    tabWidth: 2
+
+outputs:
+  home: ["HTML", "RSS"]
+
+imaging:
+  quality: 95
+
+caches:
+  assets:
+    dir: :resourceDir/_gen
+    maxAge: -1
+  images:
+    dir: :resourceDir/_gen
+    maxAge: -1
+
+minify:
+  minifyOutput: true

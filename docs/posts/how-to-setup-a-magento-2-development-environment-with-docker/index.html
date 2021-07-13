@@ -1,0 +1,178 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="ie=edge"><title>How to Setup a Magento 2 Development Environment with Docker - Rick Daalhuizen</title><meta name=viewport content="width=device-width,initial-scale=1"><link rel=icon href=https://rickdaalhuizen.comfavicon.png><link rel=stylesheet href=/css/style.min.4b2bfb3701049fe0da3e8d6b9d15186ba1dc7e294f0be3e2bca21bb8a330f5dd.css><meta name=description content="A complete guide on how to install an existing or clean Magento 2 development environment with docker and warden."><meta property="og:title" content="How to Setup a Magento 2 Development Environment with Docker"><meta property="og:type" content="website"><meta property="og:url" content="https://rickdaalhuizen.com/posts/how-to-setup-a-magento-2-development-environment-with-docker/"><meta property="og:description" content="A complete guide on how to install an existing or clean Magento 2 development environment with docker and warden."><meta name=twitter:card content="summary"><meta name=twitter:site content="@zerostaticio"><meta name=twitter:creator content="@zerostaticio"><link rel=preconnect href=https://fonts.gstatic.com><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel=stylesheet></head><body class="page page-default-single"><div id=wrapper class=wrapper><div class=header><a class=header-logo href=https://rickdaalhuizen.com>Rick Daalhuizen</a><div class=menu-main><ul><li class=menu-item-about><a href=/pages/about/>About</a></li><li class=menu-item-posts><a href=/posts/>Posts</a></li></ul></div></div><div class=intro><h1>How to Setup a Magento 2 Development Environment with Docker<span class=dot>.</span></h1></div><div class=content><p>When I just started developing PHP applications I used Mamp or Xamp to set up a local Lamp stack.</p><p>Later this became Vagrant in combination with VirtualBox and eventually Docker.</p><p>The main advantage of Docker is portability, performance and it is scalable. This pays off, especially when you work in a team.</p><blockquote><p>When using commerce with Magento 2 it is possible to use the Magento Cloud Docker environment.</p></blockquote><h2 id=brief-introduction-to-docker>Brief introduction to docker</h2><p>The main difference between Docker and a VM is mainly the architecture between the 2. A VM is a computer software that mimics a real computer. For this he uses a hypervision — also called a &ldquo;guest machine&rdquo;.</p><p>A hypervision can be a piece of software, firmware or hardware that the VM runs on. The hypervison itself runs on a real computer, this is called the &ldquo;host machine&rdquo;.</p><p>The hypervison has a complete virtualization stack, such as network adapters, storage and CPU with its own operating system to run programs.</p><p>Containers and VM are similar, but the main difference between containers and a VM is that containers use the host computer kernel, which in turn shares it with other containers.</p><p>A container does not need a complete virtualization stack and its own os to run programs.</p><figure><img src=vm-vs-docker.png alt="VM vs Docker"></figure><p>However, if you want to delve deeper into the difference between docker and a VM, I recommend reading <a href=https://www.freecodecamp.org/news/a-beginner-friendly-introduction-to-containers-vms-and-docker-79a9e3e119b/>&ldquo;A Beginner-Friendly Introduction to Containers, VMs and Docker&rdquo;</a>.</p><h2 id=what-is-warden>What is Warden</h2><p>For those who have already worked with Docker, you may recognize the time it can take to set up a working Docker environment. Especially if you don&rsquo;t have a DevOps team or sysadmin to set this up.</p><p>Now there are existing Docker environments for Magento 2 that you can find on Github, but my experience and that of my team was not always flawless. Often they were not up to date, they did not work as you would like, or you had to make adjustments yourself. Eventually we ended up with Warden.</p><p>Warden is a CLI utility that makes installing a Magento environment effortless even if you have little or no knowledge of Docker. According to the Warden documentation:</p><blockquote><p>Warden is a CLI utility for orchestrating Docker based developer environments, and enables multiple local environments to run simultaneously without port conflicts via the use of a few centrally run services for proxying requests into the correct environment’s containers.</p></blockquote><p>This means that you can effortlessly run different local environments at the same time without conflicting with each other. Warden has the following features:</p><ul><li>Traefik for SSL termination and routing/proxying requests into the correct containers.</li><li>Portainer for quick visibility into what’s running inside the local Docker host.</li><li>Dnsmasq to serve DNS responses for .test domains eliminating manual editing of /etc/hosts</li><li>An SSH tunnel for connecting from Sequel Pro or TablePlus into any one of multiple running database containers.</li><li>Warden issued wildcard SSL certificates for running https on all local development domains.</li><li>Full support for Magento 1, Magento 2, Laravel, Symfony 4, Shopware 6 on both macOS and Linux.</li><li>Ability to override, extend, or set-up completely custom environment definitions on a per-project basis.</li></ul><h2 id=preparations>Preparations</h2><p>To install Warden you first need Docker. Furthermore, it only runs on Linux or macOS - as far as I know there is no way to run warden on windows yet. If you are running macOS, I recommend installing <a href=https://hub.docker.com/editions/community/docker-ce-desktop-mac>Docker Desktop for Mac</a>. For Linux, that&rsquo;s Docker for Linux. You also need docker compose and Mutagen 0.11.4 or higher.</p><h2 id=install-docker>Install Docker</h2><p>First make sure you have a package manager like Homebrew for macOS to install Docker Desktop for Mac, then run:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>brew cask install docker
+</code></pre></div><p>This installs the following: Docker Desktop, Docker Community Edition, Docker CE.</p><p>To install Docker for Linux you can use Docker engine.</p><p>With snapcraft:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>sudo snap install docker
+</code></pre></div><p>With apt-get:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>sudo apt-get install docker-ce docker-ce-cli containerd.io
+</code></pre></div><h2 id=install-warden>Install warden</h2><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>brew install davidalger/warden/warden
+warden svc up
+</code></pre></div><h2 id=warden-global-services>Warden Global Services</h2><p>Now that you have installed warden you can start warden by running:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden up
+</code></pre></div><p>This starts Warden&rsquo;s Global services. See <em>docker ps</em></p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>❯ warden up
+Creating network <span class=s2>&#34;warden&#34;</span> with the default driver
+Creating traefik   ... <span class=k>done</span>
+Creating portainer ... <span class=k>done</span>
+Creating tunnel    ... <span class=k>done</span>
+Creating dnsmasq   ... <span class=k>done</span>
+</code></pre></div><p>This includes traefik, portainer, dnsmasq and mailhog. This will give you access to the GUI and can be reached by going to the following urls:</p><ul><li><a href=https://traefik.warden.test/>https://traefik.warden.test/</a></li><li><a href=https://portainer.warden.test/>https://portainer.warden.test/</a></li><li><a href=https://dnsmasq.warden.test/>https://dnsmasq.warden.test/</a></li><li><a href=https://mailhog.warden.test/>https://mailhog.warden.test/</a></li></ul><h2 id=warden-commands>Warden commands</h2><p>Warden has some useful commands that you can use to work with warden.</p><p>start warden:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden up
+</code></pre></div><p>stop warden:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden down
+</code></pre></div><p>start warden environment</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env start
+</code></pre></div><p>stop warden environment</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env down
+</code></pre></div><p>SSH in warden environment</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden shell
+</code></pre></div><p>Run a command in Warden environment</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env <span class=nb>exec</span> php-fpm bin/magento
+</code></pre></div><p>Open MySQL session</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden db connect -A
+</code></pre></div><p>Show PHP logs</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env logs --tail <span class=m>0</span> -f php-fpm php-debug
+</code></pre></div><h2 id=create-a-project>Create a project</h2><p>It only takes a few steps to set up a Warden environment for Magento 2.</p><p>Configure your Magento Marketplace credentials</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>composer global config http-basic.repo.magento.com &lt;username&gt; &lt;password&gt;
+</code></pre></div><p>Let’s start by create a project</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>composer create-project --repository-url<span class=o>=</span>https://repo.magento.com/ magento/project-community-edition --ignore-platform-reqs example <span class=o>&amp;&amp;</span> <span class=nb>cd</span> example/
+</code></pre></div><p>Add a .env file to your project.</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env-init &lt;example&gt; magento2
+</code></pre></div><p>This creates an .env file in the root of your project. Want to customize your PHP version for example, you can do it here.</p><p>This .env file is used for the warden env commands. See warden env -h for more details.</p><h2 id=create-an-ssl-certificate>Create an SSL certificate</h2><p>You can create an SSL certificate as follows:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden sign-certificate example.test
+</code></pre></div><p>Make sure the name matches “TRAEFIK_DOMAIN” which is in your .env</p><p>Now run:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env up -d
+</code></pre></div><p>When you run this for the first time, the following are created:</p><ul><li>Nginx</li><li>Varnish</li><li>PHP-FPM (7.0+)</li><li>MariaDB</li><li>Elasticsearch</li><li>RabbitMQ</li><li>Redis</li></ul><p><br>This also starts the Mutagen sync session that syncs your files to your Docker container.</p><p>See result:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>❯ warden env up -d
+Creating network <span class=s2>&#34;example_default&#34;</span> with the default driver
+Creating example_elasticsearch_1 ... <span class=k>done</span>
+Creating example_rabbitmq_1      ... <span class=k>done</span>
+Creating example_db_1            ... <span class=k>done</span>
+Creating example_redis_1         ... <span class=k>done</span>
+Creating example_mailhog_1       ... <span class=k>done</span>
+Creating example_php-fpm_1       ... <span class=k>done</span>
+Creating example_php-debug_1     ... <span class=k>done</span>
+Creating example_nginx_1         ... <span class=k>done</span>
+Creating example_varnish_1       ... <span class=k>done</span>
+Connecting traefik to example_default network
+Connecting tunnel to example_default network
+Starting example_redis_1         ... <span class=k>done</span>
+Starting example_elasticsearch_1 ... <span class=k>done</span>
+Starting example_db_1            ... <span class=k>done</span>
+Starting example_rabbitmq_1      ... <span class=k>done</span>
+Starting example_mailhog_1       ... <span class=k>done</span>
+Recreating example_php-fpm_1     ... <span class=k>done</span>
+Recreating example_php-debug_1   ... <span class=k>done</span>
+Recreating example_nginx_1       ... <span class=k>done</span>
+Recreating example_varnish_1     ... <span class=k>done</span>
+Created session sync_CQ4ZVwER7plFTM0pOaMGrFUnhopfXMcKksgfpPfNPJK
+Waiting <span class=k>for</span> initial synchronization to <span class=nb>complete</span>
+...................................................................
+
+</code></pre></div><blockquote><p>Files in the webroot are synced into the container using a Mutagen sync session with the exception of pub/media which remains mounted using a delegated mount.</p></blockquote><p>Then run your <em>docker ps</em> to see if everything is running.</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>❯ docker ps
+CONTAINER ID        IMAGE                                  COMMAND                  CREATED             STATUS              PORTS                                                 NAMES
+230ac50b96e9        wardenenv/varnish:6.0                  <span class=s2>&#34;/bin/sh -c &#39;envsubs...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        80/tcp                                                example_varnish_1
+c366710da20c        wardenenv/nginx:1.16                   <span class=s2>&#34;/bin/sh -c &#39;envsubs...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        80/tcp                                                example_nginx_1
+706638d284aa        wardenenv/php-fpm:7.3-magento2-debug   <span class=s2>&#34;docker-entrypoint p...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        9000/tcp                                              example_php-debug_1
+06431cb0868a        wardenenv/php-fpm:7.3-magento2         <span class=s2>&#34;docker-entrypoint p...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        9000/tcp                                              example_php-fpm_1
+100e10dfc2a8        wardenenv/redis:5.0                    <span class=s2>&#34;docker-entrypoint.s...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        6379/tcp                                              example_redis_1
+1959774622b3        wardenenv/mariadb:10.3                 <span class=s2>&#34;docker-entrypoint.s...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        3306/tcp                                              example_db_1
+713ff0174084        wardenenv/mailhog:1.0                  <span class=s2>&#34;MailHog&#34;</span>                <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        1025/tcp, 8025/tcp                                    example_mailhog_1
+9749c6aa8793        wardenenv/elasticsearch:6.8            <span class=s2>&#34;/usr/local/bin/dock...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        9200/tcp, 9300/tcp                                    example_elasticsearch_1
+b34f4a4c97ec        wardenenv/rabbitmq:3.7                 <span class=s2>&#34;docker-entrypoint.s...&#34;</span>   <span class=m>2</span> minutes ago       Up <span class=m>2</span> minutes        4369/tcp, 5671-5672/tcp, 15671-15672/tcp, 25672/tcp   example_rabbitmq_1
+29f678215b8c        traefik:2.1                            <span class=s2>&#34;/entrypoint.sh trae...&#34;</span>   <span class=m>19</span> hours ago        Up <span class=m>2</span> minutes        127.0.0.1:80-&gt;80/tcp, 127.0.0.1:443-&gt;443/tcp          traefik
+aa9fc5a1c1c1        portainer/portainer                    <span class=s2>&#34;/portainer&#34;</span>             <span class=m>19</span> hours ago        Up <span class=m>19</span> hours         9000/tcp                                              portainer
+58e4713d0345        jpillora/dnsmasq                       <span class=s2>&#34;webproc --config /e...&#34;</span>   <span class=m>19</span> hours ago        Up <span class=m>19</span> hours         127.0.0.1:53-&gt;53/udp                                  dnsmasq
+5687702db805        panubo/sshd:1.1.0                      <span class=s2>&#34;/entry.sh /usr/sbin...&#34;</span>   <span class=m>19</span> hours ago        Up <span class=m>19</span> hours         127.0.0.1:2222-&gt;22/tcp                                tunnel
+</code></pre></div><p>Now that the containers have been created and are running, we can proceed with the installation of Magento.</p><p>Open an ssh connection to your project</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden shell
+</code></pre></div><h2 id=install-magento>Install Magento</h2><p><em>Skip to the next step if you have an existing Magento project</em></p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash><span class=c1>## Install Application</span>
+bin/magento setup:install <span class=se>\
+</span><span class=se></span>    --backend-frontname<span class=o>=</span>admin <span class=se>\
+</span><span class=se></span>    --amqp-host<span class=o>=</span>rabbitmq <span class=se>\
+</span><span class=se></span>    --amqp-port<span class=o>=</span><span class=m>5672</span> <span class=se>\
+</span><span class=se></span>    --amqp-user<span class=o>=</span>guest <span class=se>\
+</span><span class=se></span>    --amqp-password<span class=o>=</span>guest <span class=se>\
+</span><span class=se></span>    --db-host<span class=o>=</span>db <span class=se>\
+</span><span class=se></span>    --db-name<span class=o>=</span>magento <span class=se>\
+</span><span class=se></span>    --db-user<span class=o>=</span>magento <span class=se>\
+</span><span class=se></span>    --db-password<span class=o>=</span>magento <span class=se>\
+</span><span class=se></span>    --http-cache-hosts<span class=o>=</span>varnish:80 <span class=se>\
+</span><span class=se></span>    --session-save<span class=o>=</span>redis <span class=se>\
+</span><span class=se></span>    --session-save-redis-host<span class=o>=</span>redis <span class=se>\
+</span><span class=se></span>    --session-save-redis-port<span class=o>=</span><span class=m>6379</span> <span class=se>\
+</span><span class=se></span>    --session-save-redis-db<span class=o>=</span><span class=m>2</span> <span class=se>\
+</span><span class=se></span>    --session-save-redis-max-concurrency<span class=o>=</span><span class=m>20</span> <span class=se>\
+</span><span class=se></span>    --cache-backend<span class=o>=</span>redis <span class=se>\
+</span><span class=se></span>    --cache-backend-redis-server<span class=o>=</span>redis <span class=se>\
+</span><span class=se></span>    --cache-backend-redis-db<span class=o>=</span><span class=m>0</span> <span class=se>\
+</span><span class=se></span>    --cache-backend-redis-port<span class=o>=</span><span class=m>6379</span> <span class=se>\
+</span><span class=se></span>    --page-cache<span class=o>=</span>redis <span class=se>\
+</span><span class=se></span>    --page-cache-redis-server<span class=o>=</span>redis <span class=se>\
+</span><span class=se></span>    --page-cache-redis-db<span class=o>=</span><span class=m>1</span> <span class=se>\
+</span><span class=se></span>    --page-cache-redis-port<span class=o>=</span><span class=m>6379</span> <span class=se>\
+</span><span class=se></span>    --elasticsearch-host<span class=o>=</span>elasticsearch
+
+<span class=c1>## Configure Application</span>
+bin/magento config:set --lock-env web/unsecure/base_url <span class=se>\
+</span><span class=se></span>    <span class=s2>&#34;https://</span><span class=si>${</span><span class=nv>TRAEFIK_SUBDOMAIN</span><span class=si>}</span><span class=s2>.</span><span class=si>${</span><span class=nv>TRAEFIK_DOMAIN</span><span class=si>}</span><span class=s2>/&#34;</span>
+
+bin/magento config:set --lock-env web/secure/base_url <span class=se>\
+</span><span class=se></span>    <span class=s2>&#34;https://</span><span class=si>${</span><span class=nv>TRAEFIK_SUBDOMAIN</span><span class=si>}</span><span class=s2>.</span><span class=si>${</span><span class=nv>TRAEFIK_DOMAIN</span><span class=si>}</span><span class=s2>/&#34;</span>
+
+bin/magento config:set --lock-env web/secure/offloader_header X-Forwarded-Proto
+
+bin/magento config:set --lock-env web/secure/use_in_frontend <span class=m>1</span>
+bin/magento config:set --lock-env web/secure/use_in_adminhtml <span class=m>1</span>
+bin/magento config:set --lock-env web/seo/use_rewrites <span class=m>1</span>
+
+bin/magento config:set --lock-env system/full_page_cache/caching_application <span class=m>2</span>
+bin/magento config:set --lock-env system/full_page_cache/ttl <span class=m>604800</span>
+
+bin/magento config:set --lock-env catalog/search/engine elasticsearch7
+bin/magento config:set --lock-env catalog/search/enable_eav_indexer <span class=m>1</span>
+bin/magento config:set --lock-env catalog/search/elasticsearch7_server_hostname elasticsearch
+bin/magento config:set --lock-env catalog/search/elasticsearch7_server_port <span class=m>9200</span>
+bin/magento config:set --lock-env catalog/search/elasticsearch7_index_prefix magento2
+bin/magento config:set --lock-env catalog/search/elasticsearch7_enable_auth <span class=m>0</span>
+bin/magento config:set --lock-env catalog/search/elasticsearch7_server_timeout <span class=m>15</span>
+
+bin/magento config:set --lock-env dev/static/sign <span class=m>0</span>
+
+bin/magento deploy:mode:set -s developer
+bin/magento cache:disable block_html full_page
+
+bin/magento indexer:reindex
+bin/magento cache:flush
+
+<span class=c1>## Generate an admin user</span>
+<span class=nv>ADMIN_PASS</span><span class=o>=</span><span class=s2>&#34;</span><span class=k>$(</span>pwgen -n1 16<span class=k>)</span><span class=s2>&#34;</span>
+<span class=nv>ADMIN_USER</span><span class=o>=</span>localadmin
+
+bin/magento admin:user:create <span class=se>\
+</span><span class=se></span>    --admin-password<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>ADMIN_PASS</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span><span class=se></span>    --admin-user<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>ADMIN_USER</span><span class=si>}</span><span class=s2>&#34;</span> <span class=se>\
+</span><span class=se></span>    --admin-firstname<span class=o>=</span><span class=s2>&#34;Local&#34;</span> <span class=se>\
+</span><span class=se></span>    --admin-lastname<span class=o>=</span><span class=s2>&#34;Admin&#34;</span> <span class=se>\
+</span><span class=se></span>    --admin-email<span class=o>=</span><span class=s2>&#34;</span><span class=si>${</span><span class=nv>ADMIN_USER</span><span class=si>}</span><span class=s2>@example.com&#34;</span>
+<span class=nb>printf</span> <span class=s2>&#34;u: %s\np: %s\n&#34;</span> <span class=s2>&#34;</span><span class=si>${</span><span class=nv>ADMIN_USER</span><span class=si>}</span><span class=s2>&#34;</span> <span class=s2>&#34;</span><span class=si>${</span><span class=nv>ADMIN_PASS</span><span class=si>}</span><span class=s2>&#34;</span>
+
+</code></pre></div><h2 id=install-existing-magento-2-project>Install existing Magento 2 project</h2><p>The following steps are the same as discussed above to the point of installing Magento. The first thing you need is a database export of your existing project, then import it as follows:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>pv /path/to/&lt;your_database_export&gt;.sql <span class=p>|</span> warden db import
+</code></pre></div><p>Or copy your database export to your php-fpm container and use magerun with the drop tables option to import your database:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>cp /path/to/&lt;your_database_export&gt;.sql &lt;container_id&gt;:/var/www/html
+warden env <span class=nb>exec</span> php-fpm n98-magerun db:import --drop-tables &lt;your_database_export&gt;.sql
+</code></pre></div><blockquote><p>Magerun is included by default when you install Warden, so you don&rsquo;t have to manually install it yourself.</p></blockquote><p>When that is done you have to put the urls correctly in the <em>core_config_data</em> table:</p><p>With Magerun:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env <span class=nb>exec</span> php-fpm n98-magerun config:set web/unsecure/baseurl  http://app.example.test/
+warden env <span class=nb>exec</span> php-fpm n98-magerun config:set web/secure/baseurl  https://app.example.test/
+warden env <span class=nb>exec</span> php-fpm n98-magerun web/unsecure/base_media_url http://app.example.test/media/
+warden env <span class=nb>exec</span> php-fpm n98-magerun web/secure/base_media_url https://app.example.test/media/
+</code></pre></div><p>Or you can open an interactive mysql session in your current project by:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden db connect -A
+</code></pre></div><p>And then by executing the following sql query:</p><div class=highlight><pre class=chroma><code class=language-sql data-lang=sql><span class=k>UPDATE</span><span class=w> </span><span class=o>`</span><span class=n>core_config_data</span><span class=o>`</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>value</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;http://app.example.test&#39;</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>path</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;web/unsecure/baseurl&#39;</span><span class=p>;</span><span class=w>
+</span><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=o>`</span><span class=n>core_config_data</span><span class=o>`</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>value</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;https://app.example.test&#39;</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>path</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;web/secure/baseurl&#39;</span><span class=p>;</span><span class=w>
+</span><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=o>`</span><span class=n>core_config_data</span><span class=o>`</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>value</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;http://app.example.test/media/&#39;</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>path</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;web/unsecure/base_media_url&#39;</span><span class=p>;</span><span class=w>
+</span><span class=w></span><span class=k>UPDATE</span><span class=w> </span><span class=o>`</span><span class=n>core_config_data</span><span class=o>`</span><span class=w> </span><span class=k>SET</span><span class=w> </span><span class=n>value</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;https://app.example.test/media/&#39;</span><span class=w> </span><span class=k>WHERE</span><span class=w> </span><span class=n>path</span><span class=w> </span><span class=o>=</span><span class=w> </span><span class=s1>&#39;web/secure/base_media_url&#39;</span><span class=p>;</span><span class=w>
+</span></code></pre></div><p>Now that your installation is ready you can restart Warden.</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env down <span class=o>&amp;&amp;</span> warden env up -d
+</code></pre></div><p>Go to your application in your browser: <a href=https://app.example.test>https://app.example.test</a></p><figure><img src=fresh-magento-2-install.png alt="Fresh Magento 2 install"></figure><h2 id=create-an-ssh-connection-to-your-database>Create an SSH connection to your database</h2><p>Now that everything is up and running, you can connect to your database as follows.</p><ul><li>Host: &lt;WARDEN_ENV_NAME_db_1></li><li>User: magento</li><li>Password: magento</li><li>Database: magento</li><li>SSH Host: tunnel.waren.test</li></ul><h5 id=tableplus>Tableplus</h5><p>Create a new connection > MySQL > Create</p><figure><img src=tableplus.png alt=Tableplus></figure><h5 id=sequel-pro>Sequel Pro</h5><figure><img src=sequal-pro.png alt="Sequel Pro"></figure><h5 id=phpstorm>PHPStorm</h5><ol><li>Database > Data Source > MySQL
+SSH/SSL > Use SSH tunnel > Select configuration ><br><figure><img src=phpstorm-1.png alt="PHPStorm SSH/SSL"></figure></li><li>SSH/SSL > Use SSH tunnel > Select configuration ><br><figure><img src=phpstorm-2.png alt="PHPStorm Test connection 1"></figure></li><li>Test connection<br><figure><img src=phpstorm-3.png alt="PHPStorm Test connection 2"></figure><br><figure><img src=phpstorm-4.png alt="PHPStorm Test connection 3"></figure></li></ol><h2 id=install-grunt-and-configure-live-reload>Install Grunt and configure Live reload</h2><p>Check if grunt is installed:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>❯ grunt --version
+grunt-cli v1.3.2
+</code></pre></div><p>If not:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>npm install -g grunt-cli
+</code></pre></div><p>Add the following to your <em>app/etc/env.php</em></p><div class=highlight><pre class=chroma><code class=language-php data-lang=php><span class=o>&lt;?</span><span class=nx>php</span>
+<span class=k>return</span> <span class=p>[</span>
+    <span class=s1>&#39;system&#39;</span> <span class=o>=&gt;</span> <span class=p>[</span>
+        <span class=s1>&#39;default&#39;</span> <span class=o>=&gt;</span> <span class=p>[</span>
+            <span class=s1>&#39;design&#39;</span> <span class=o>=&gt;</span> <span class=p>[</span>
+                <span class=s1>&#39;footer&#39;</span> <span class=o>=&gt;</span> <span class=p>[</span>
+                    <span class=s1>&#39;absolute_footer&#39;</span> <span class=o>=&gt;</span> <span class=s1>&#39;&lt;script src=&#34;/livereload.js?port=443&#34;&gt;&lt;/script&gt;&#39;</span>
+                <span class=p>]</span>
+            <span class=p>]</span>
+        <span class=p>]</span>
+    <span class=p>]</span>
+<span class=p>];</span>
+</code></pre></div><p>Add your Gruntfile and package.json if you don&rsquo;t already have them.</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>cp Gruntfile.js.sample Gruntfile.js
+cp package.json.sample package.json
+</code></pre></div><p>Install node packages</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>npm install
+</code></pre></div><p>Copy files to your Docker php-fpm container:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>docker cp Gruntfile.js &lt;container_id&gt;:/var/www/html
+docker cp package.json &lt;container_id&gt;:/var/www/html
+docker cp node_modules &lt;container_id&gt;:/var/www/html
+</code></pre></div><p>Perform the following:</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env <span class=nb>exec</span> php-fpm grunt clean <span class=o>&amp;&amp;</span> grunt less
+</code></pre></div><p>Finally</p><div class=highlight><pre class=chroma><code class=language-bash data-lang=bash>warden env <span class=nb>exec</span> php-fpm grunt watch
+</code></pre></div><p>So far: &ldquo;how to set up a local Docker environment for Magento with warden&rdquo;. In the 2nd part I will talk about how to set up multiple store views in Magento 2 and Warden.</p></div><div class=footer><div class=footer-social><span class="social-icon social-icon-twitter"><a href=https://twitter.com/zerostaticio title=twitter target=_blank rel=noopener><img src=/images/social/twitter.svg width=24 height=24 alt=twitter></a></span>
+<span class="social-icon social-icon-github"><a href=https://github.com/zerostaticthemes title=github target=_blank rel=noopener><img src=/images/social/github.svg width=24 height=24 alt=github></a></span>
+<span class="social-icon social-icon-linkedin"><a href=https://www.linkedin.com title=linkedin target=_blank rel=noopener><img src=/images/social/linkedin.svg width=24 height=24 alt=linkedin></a></span></div></div></div><script type=text/javascript src=/js/bundle.min.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.js></script></body></html>

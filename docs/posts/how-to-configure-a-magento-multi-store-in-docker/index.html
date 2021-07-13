@@ -1,0 +1,60 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="ie=edge"><title>How to Configure a Magento Multistore in Docker - Rick Daalhuizen</title><meta name=viewport content="width=device-width,initial-scale=1"><link rel=icon href=https://rickdaalhuizen.comfavicon.png><link rel=stylesheet href=/css/style.min.4b2bfb3701049fe0da3e8d6b9d15186ba1dc7e294f0be3e2bca21bb8a330f5dd.css><meta name=description content="How to setup multiple websites, stores and store views in Magento locally with Docker using Warden and Traefik."><meta property="og:title" content="How to Configure a Magento Multistore in Docker"><meta property="og:type" content="website"><meta property="og:url" content="https://rickdaalhuizen.com/posts/how-to-configure-a-magento-multi-store-in-docker/"><meta property="og:description" content="How to setup multiple websites, stores and store views in Magento locally with Docker using Warden and Traefik."><meta name=twitter:card content="summary"><meta name=twitter:site content="@zerostaticio"><meta name=twitter:creator content="@zerostaticio"><link rel=preconnect href=https://fonts.gstatic.com><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel=stylesheet></head><body class="page page-default-single"><div id=wrapper class=wrapper><div class=header><a class=header-logo href=https://rickdaalhuizen.com>Rick Daalhuizen</a><div class=menu-main><ul><li class=menu-item-about><a href=/pages/about/>About</a></li><li class=menu-item-posts><a href=/posts/>Posts</a></li></ul></div></div><div class=intro><h1>How to Configure a Magento Multistore in Docker<span class=dot>.</span></h1></div><div class=content><p>In warden it is possible to set up multiple domains for your project. Warden uses Traefik and is installed as a Global Service.</p><p>Traefik ensures that requests are intercepted and sent to the correct back-end service e.g. <em>https: //app.example1.test</em> <em>https: //app.example2.test</em>. For this it uses an <strong>HTTP reverse proxy</strong> and a <strong>load balancer</strong>.</p><p>It also has a dashboard to monitor different metrics. This can be found if you go to https: <a href=https://traefik.warden.test/>https://traefik.warden.test/</a>.</p><blockquote><p>A reverse proxy is a server that sits in front of web servers and forwards client (e.g. web browser) requests to those web servers.</p></blockquote><figure><img src=traefik-dashboard.png alt="Traefik Dashboard"></figure><p>Before continuing, make sure you have set up a multistore in Magento. You can read how to do this in my previous blog post <a href=https://rickdaalhuizen.com/posts/how-to-create-a-multi-store-in-magento/>“How to Setup a Multistore in Magento 2”</a>.</p><p>The following must be configured to set up a multi-domain locally for your Magento Shop.</p><ol><li>Sign certificates for your new domains</li><li>Configure Nginx and Varnish to handle traffic coming from your new domains</li><li>Configure Magento 2 to load different stores or websites by setting the run params.</li></ol><h2 id=step-1-sign-certificates-for-your-new-domains>Step 1: Sign certificates for your new domains</h2><div class=highlight><pre class=chroma><code class=language-zsh data-lang=zsh>warden sign-certificate &lt;your_new_domain&gt;.test
+</code></pre></div><p>This does the following.</p><ol><li>Update your ssl certificates</li><li>Create a new ssl certificate.</li><li>Update Traefik</li></ol><p>This is the output</p><div class=highlight><pre class=chroma><code class=language-zsh data-lang=zsh>❯ warden sign-certificate sportdrinks.test
+<span class=o>==</span>&gt; Generating private key sportdrinks.test.key.pem
+Generating RSA private key, <span class=m>2048</span> bit long modulus
+..+++
+......................+++
+e is <span class=m>65537</span> <span class=o>(</span>0x10001<span class=o>)</span>
+<span class=o>==</span>&gt; Generating signing req sportdrinks.test.crt.pem
+<span class=o>==</span>&gt; Generating certificate sportdrinks.test.crt.pem
+Signature ok
+<span class=nv>subject</span><span class=o>=</span>/C<span class=o>=</span>US/O<span class=o>=</span>Warden.dev/CN<span class=o>=</span>sportdrinks.test
+Getting CA Private <span class=nv>Key</span>
+<span class=o>==</span>&gt; Updating traefik
+traefik is up-to-date
+Connecting traefik to example_default network
+Connecting tunnel to example_default network
+Connecting mailhog to example_default network
+Restarting traefik ... <span class=k>done</span>
+</code></pre></div><h2 id=step-2-configure-nginx-and-varnish>Step 2: Configure Nginx and Varnish</h2><p>From the root of your project you create a .warden/warden-env.yml file. This file exceeds the environment templates in warden. To see the complete configuration use: warden env config.</p><blockquote><p>Each environment&rsquo;s configuration uses a base configuration YAML file and optionally a darwin and linux file to add everything to the base configuration.</p></blockquote><p>Add the following to your <em>.warden/warden-env.yml</em></p><div class=highlight><pre class=chroma><code class=language-yml data-lang=yml><span class=nt>version</span><span class=p>:</span><span class=w> </span><span class=s2>&#34;3.5&#34;</span><span class=w>
+</span><span class=w></span><span class=nt>services</span><span class=p>:</span><span class=w>
+</span><span class=w>  </span><span class=nt>varnish</span><span class=p>:</span><span class=w>
+</span><span class=w>    </span><span class=nt>labels</span><span class=p>:</span><span class=w>
+</span><span class=w>      </span>- <span class=l>traefik.http.routers.${WARDEN_ENV_NAME}-varnish.rule=</span><span class=w>
+</span><span class=w>          </span><span class=l>HostRegexp(`{subdomain:.+}.${TRAEFIK_DOMAIN}`)</span><span class=w>
+</span><span class=w>          </span><span class=l>|| HostRegexp(`{subdomain:.+}.&lt;your_new_domain&gt;.test`)</span><span class=w>
+</span><span class=w>  </span><span class=nt>nginx</span><span class=p>:</span><span class=w>
+</span><span class=w>    </span><span class=nt>labels</span><span class=p>:</span><span class=w>
+</span><span class=w>      </span>- <span class=l>traefik.http.routers.${WARDEN_ENV_NAME}-nginx.rule=</span><span class=w>
+</span><span class=w>          </span><span class=l>HostRegexp(`{subdomain:.+}.${TRAEFIK_DOMAIN}`)</span><span class=w>
+</span><span class=w>          </span><span class=l>|| HostRegexp(`{subdomain:.+}.&lt;your_new_domain&gt;.test`)</span><span class=w>
+</span></code></pre></div><p>Then run warden env up -d to update your containers.</p><h2 id=step-3-configure-magento-2-run-params>Step 3: Configure Magento 2 run params</h2><p>Create an <em>app/etc/Stores.php</em> and load it via composer.json according to the <strong><a href=https://www.php-fig.org/psr/psr-4/>PSR-4 standard</a></strong>.</p><p>Create a file <em>app/etc/Stores.php</em> with the following content:</p><div class=highlight><pre class=chroma><code class=language-php data-lang=php><span class=o>&lt;?</span><span class=nx>php</span>
+
+<span class=k>use</span> <span class=nx>\Magento\Store\Model\StoreManager</span><span class=p>;</span>
+<span class=nv>$serverName</span> <span class=o>=</span> <span class=nx>isset</span><span class=p>(</span><span class=nv>$_SERVER</span><span class=p>[</span><span class=s1>&#39;HTTP_HOST&#39;</span><span class=p>])</span> <span class=o>?</span> <span class=nv>$_SERVER</span><span class=p>[</span><span class=s1>&#39;HTTP_HOST&#39;</span><span class=p>]</span> <span class=o>:</span> <span class=k>null</span><span class=p>;</span>
+
+<span class=k>switch</span> <span class=p>(</span><span class=nv>$serverName</span><span class=p>)</span> <span class=p>{</span>
+    <span class=k>case</span> <span class=nx>app</span><span class=o>.&lt;</span><span class=nx>your_new_domain</span><span class=o>&gt;.</span><span class=nx>test</span><span class=err>&#39;</span><span class=o>:</span>
+        <span class=nv>$runCode</span> <span class=o>=</span> <span class=o>&lt;</span><span class=nx>code</span><span class=o>&gt;</span><span class=p>;</span>
+        <span class=nv>$runType</span> <span class=o>=</span> <span class=o>&lt;</span><span class=nx>type</span><span class=o>&gt;</span><span class=p>;</span>
+        <span class=k>break</span><span class=p>;</span>
+<span class=p>}</span>
+
+<span class=k>if</span> <span class=p>((</span><span class=o>!</span><span class=nx>isset</span><span class=p>(</span><span class=nv>$_SERVER</span><span class=p>[</span><span class=nx>StoreManager</span><span class=o>::</span><span class=na>PARAM_RUN_TYPE</span><span class=p>])</span>
+        <span class=o>||</span> <span class=o>!</span><span class=nv>$_SERVER</span><span class=p>[</span><span class=nx>StoreManager</span><span class=o>::</span><span class=na>PARAM_RUN_TYPE</span><span class=p>])</span>
+    <span class=o>&amp;&amp;</span> <span class=p>(</span><span class=o>!</span><span class=nx>isset</span><span class=p>(</span><span class=nv>$_SERVER</span><span class=p>[</span><span class=nx>StoreManager</span><span class=o>::</span><span class=na>PARAM_RUN_CODE</span><span class=p>])</span>
+        <span class=o>||</span> <span class=o>!</span><span class=nv>$_SERVER</span><span class=p>[</span><span class=nx>StoreManager</span><span class=o>::</span><span class=na>PARAM_RUN_CODE</span><span class=p>])</span>
+<span class=p>)</span> <span class=p>{</span>
+    <span class=nv>$_SERVER</span><span class=p>[</span><span class=nx>StoreManager</span><span class=o>::</span><span class=na>PARAM_RUN_CODE</span><span class=p>]</span> <span class=o>=</span> <span class=nv>$runCode</span><span class=p>;</span>
+    <span class=nv>$_SERVER</span><span class=p>[</span><span class=nx>StoreManager</span><span class=o>::</span><span class=na>PARAM_RUN_TYPE</span><span class=p>]</span> <span class=o>=</span> <span class=nv>$runType</span><span class=p>;</span>
+<span class=p>}</span>
+</code></pre></div><p>The run-code and run-time are the store code and type of your Magento Store or Website. You can find this under <strong>Stores -> Settings -> All Stores</strong> or in one of the <em><em>store</em> *</em>_ tables.</p><div class=highlight><pre class=chroma><code class=language-json data-lang=json><span class=p>{</span>
+    <span class=nt>&#34;autoload&#34;</span><span class=p>:</span> <span class=p>{</span>
+        <span class=nt>&#34;files&#34;</span><span class=p>:</span> <span class=p>[</span>
+            <span class=s2>&#34;app/etc/stores.php&#34;</span>
+        <span class=p>]</span>
+    <span class=p>}</span>
+<span class=p>}</span>
+</code></pre></div><p>Run composer <em>dump-autoload</em> to regenerate your autoload configuration.</p><p>Then restart warden containers and navigate to your new domain app. <em>&lt;your_new_domain>.test</em>.</p></div><div class=footer><div class=footer-social><span class="social-icon social-icon-twitter"><a href=https://twitter.com/zerostaticio title=twitter target=_blank rel=noopener><img src=/images/social/twitter.svg width=24 height=24 alt=twitter></a></span>
+<span class="social-icon social-icon-github"><a href=https://github.com/zerostaticthemes title=github target=_blank rel=noopener><img src=/images/social/github.svg width=24 height=24 alt=github></a></span>
+<span class="social-icon social-icon-linkedin"><a href=https://www.linkedin.com title=linkedin target=_blank rel=noopener><img src=/images/social/linkedin.svg width=24 height=24 alt=linkedin></a></span></div></div></div><script type=text/javascript src=/js/bundle.min.e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.js></script></body></html>
