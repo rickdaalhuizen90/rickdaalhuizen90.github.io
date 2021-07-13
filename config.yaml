@@ -13,7 +13,7 @@ publishDir: docs
 
 params:
   google_analytics_id: ""
-  twitter_handle: "@zerostaticio"
+  twitter_handle: "@rickdaalhuizen"
   showAuthorOnHomepage: true
   showAuthorOnPosts: false
   showPostsOnHomepage: false

@@ -2,18 +2,18 @@
   "links": [
     {
       "name": "twitter",
-      "url": "https://twitter.com/zerostaticio",
+      "url": "https://twitter.com/rickdaalhuizen",
       "image": "images/social/twitter.svg"
     },
     {
       "name": "github",
-      "url": "https://github.com/zerostaticthemes",
+      "url": "https://github.com/rickdaalhuizen90",
       "image": "images/social/github.svg"
     },
     {
-      "name": "linkedin",
-      "url": "https://www.linkedin.com",
-      "image": "images/social/linkedin.svg"
+      "name": "medium",
+      "url": "https://medium.com/@rick.daalhuizen90",
+      "image": "images/social/medium.svg"
     }
   ]
 }
